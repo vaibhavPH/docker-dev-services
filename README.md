@@ -2,68 +2,84 @@
 
 ## Description
 
-This is a set of scripts to run set of services during development using
-Docker Compose. Makes it easier to start / stop set of services on demand.
+This is a tool to run set of services during development using Docker Compose.
+Makes it easier to start / stop set of services on demand.
 
 Supported services:
 
 - ELK stack (Elasticsearch + Logstash + Kibana)
+- EventStoreDB
+- InfluxDB
 - MongoDB
+- PostgreSQL
 - RabbitMQ
 - Redis
-- EventStore
+- Seq
 - SQL Server
-- PostgreSQL
 - Vault
 
 ## Prerequisites
 
-- Docker with Docker Compose
+- Docker with Docker Compose CLI plugin: <https://docs.docker.com/install/>, <https://docs.docker.com/compose/install/compose-plugin/>
+- PowerShell Core: <https://github.com/powershell/powershell>
+
+## Overview
+
+Set of services is started using Docker Compose.
+
+Each service in the set is defined in its own directory `services/<service-name>-<version>/service.yaml`.
+
+All services use bridge network `devsvcnet` (defined in `services/network.yaml`), so they are immediately available on the host machine.
+
+Sets are defined in `service-set/set.yaml` files. There are two sets provided out of the box:
+
+- `default`: EventStoreDB, RabbitMQ, MongoDB, PostgreSQL, Seq
+- `_template`: this set has all the supported services included and can be used as a starting point when creating own sets
 
 ## Usage
 
-Review `<service>.yaml` files, you may want to make some adjustments e.g.
-mounted data volume path etc.
+- Clone or copy this repository locally, or download from [releases](https://github.com/iblazhko/docker-dev-services/releases/) page
+- Create a service set file `service-sets/<set>.local.yaml` (there is a rule in `.gitignore` to exclude `.local.yaml` files from source control) 
+- Review included services `service.yaml` definitions. If you need to change environment variables to a service, add file `.env/<service-name>-<version>.env`. Typically this would be used to change default credentials. See corresponding service `service.env` file for a reference.
 
-You will also find `compose-<service>.env` files for some of the services. This
-is where devault environment variables are defined. If you need to change
-service's environment variables, create `compose-<service>.env.local` file and
-put your environment variables there. `compose-<service>.env.local` files are
-local and should not be checked into source control (there is a rule in
-`.gitignore` to help with that).
+It is recommented to organize sets by products / use cases. E.g. if *Product1* us using ELK and MongoDB, and *Product2* uses ELK, Postgres, and Redis, you may have following sets:
 
-### Linux, macOS
+`product-sets/prod1.local.yaml`
 
-Review `services-versions.sh`, adjust version numbers if needed.
-
-Review `services-list.sh`, adjust list of services that will be started.
-
-Start all the services:
-
-```bash
-start.sh
+```yaml
+set: prod1
+services:
+  - elasticsearch-8.3
+  - kibana-8.3
+  - mongo-4.2
 ```
 
-Stop all the services and remove containers:
+`product-sets/prod2.local.yaml`
 
-```bash
-stop.sh
+```yaml
+set: prod2
+services:
+  - elasticsearch-8.3
+  - kibana-8.3
+  - postgres-14.4
+  - redis-7.0
 ```
 
-### Windows
+**NOTE:** You can define multiple custom service sets, however it is only possible to use them one at a time. All services use same bridge network, so if a service is included in multiple sets, Docker Compose will allocate distinct names for the service in different sets, but they will still use same network port, so only one service can be active at a time that uses that port.
 
-Review `services-versions.cmd`, adjust version numbers if needed.
+### Start
 
-Review `services-list.cmd`, adjust list of services that will be started.
+Start service set by name:
 
-Start all the services:
-
-```bash
-start.cmd
+```sh
+start.ps1 -Set <set-name>
 ```
 
-Stop all the services and remove containers:
+### Stop
 
-```bash
-stop.cmd
+Stop service set that was previously started by `start.ps1 <set-name>`.
+
+```sh
+stop.ps1
 ```
+# Test Edit 1
